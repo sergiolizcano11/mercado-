@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Le Marché Bio - Simulateur</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Atkinson Hyperlegible', sans-serif;
+            background-color: #f8fafc;
+        }
+        
+        .btn-option {
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 0 #cbd5e1;
+        }
+        .btn-option:active:not(:disabled) {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #cbd5e1;
+        }
+        .btn-option:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        
+        .correct-btn { background-color: #22c55e !important; color: white !important; box-shadow: 0 4px 0 #166534 !important; }
+        .wrong-btn { background-color: #ef4444 !important; color: white !important; box-shadow: 0 4px 0 #991b1b !important; }
+    </style>
+</head>
+<body class="p-4 flex flex-col items-center min-h-screen justify-center">
+
+    <div class="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden border-2 border-slate-200">
+        <!-- Cabecera -->
+        <div class="bg-emerald-600 text-white p-4 text-center">
+            <h1 class="text-2xl font-bold">Le Marché Bio 🛒</h1>
+            <p class="text-sm opacity-90 mt-1">Objectif 12 : Consommation responsable</p>
+        </div>
+
+        <!-- Marcador -->
+        <div class="flex justify-between items-center bg-slate-50 p-3 border-b border-slate-200">
+            <div class="font-bold text-slate-600">Éco-points :</div>
+            <div class="text-xl font-bold text-emerald-600 flex items-center gap-1">
+                <span id="score">0</span> 🌱
+            </div>
+        </div>
+
+        <div class="p-5">
+            <!-- Zona del Dependiente (Vendeur) -->
+            <div class="flex gap-4 items-start mb-6">
+                <div class="text-5xl">👨‍🌾</div>
+                <div class="bg-blue-50 p-4 rounded-2xl rounded-tl-none border border-blue-100 relative w-full">
+                    <p id="vendor-text" class="text-lg font-bold text-slate-800">Bonjour ! Désirez-vous un sac en plastique pour vos courses ?</p>
+                </div>
+            </div>
+
+            <!-- Botones de Respuesta -->
+            <div id="options-container" class="flex flex-col gap-3 mb-6">
+                <!-- Se generan con JS -->
+            </div>
+            
+            <!-- Feedback y Botón Siguiente -->
+            <div id="feedback-container" class="hidden">
+                <div id="feedback-box" class="p-4 rounded-xl mb-4 font-bold text-center text-lg"></div>
+                <button id="next-btn" onclick="nextQuestion()" class="w-full bg-blue-600 text-white font-bold p-4 rounded-xl shadow-[0_4px_0_#1d4ed8] active:translate-y-1 active:shadow-none transition-all">
+                    Continuer ➡️
+                </button>
+            </div>
+            
+            <!-- Pantalla Final -->
+            <div id="end-screen" class="hidden text-center py-6">
+                <div class="text-6xl mb-4">🏆</div>
+                <h2 class="text-2xl font-bold text-slate-800 mb-2">Félicitations !</h2>
+                <p class="text-lg text-slate-600 mb-4">Tu es un consommateur très responsable.</p>
+                <button onclick="location.reload()" class="w-full bg-emerald-600 text-white font-bold p-4 rounded-xl shadow-[0_4px_0_#047857] active:translate-y-1 active:shadow-none transition-all">
+                    Rejouer 🔄
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            {
+                vendor: "Bonjour ! Désirez-vous un sac en plastique pour vos courses ?",
+                options: [
+                    { text: "Non merci, j'ai mon sac réutilisable.", isCorrect: true, feedback: "Parfait ! 'Sac' es masculino. Al usar bolsas reutilizables evitamos residuos plásticos." },
+                    { text: "Oui, je veux un sac réutilisable en plastique.", isCorrect: false, feedback: "Attention à la logique : si c'est en plastique fin, ce n'est pas écologique." },
+                    { text: "Non merci, j'ai ma sac réutilisable.", isCorrect: false, feedback: "Presque ! Mais 'sac' est masculin en français (MON sac)." }
+                ]
+            },
+            {
+                vendor: "Ces fraises importées sont très bonnes !",
+                options: [
+                    { text: "Je veux des fruits locales.", isCorrect: false, feedback: "Attention à l'accord : 'fruits' est masculin pluriel (locaux)." },
+                    { text: "Je préfère les fruits de saisonnier.", isCorrect: false, feedback: "On dit 'fruits de saison' (frutas de temporada)." },
+                    { text: "Je préfère des fruits locaux et de saison.", isCorrect: true, feedback: "Excellent ! Comprar 'local y de temporada' reduce la huella de carbono del transporte." }
+                ]
+            },
+            {
+                vendor: "Vous achetez du riz en sachet individuel ?",
+                options: [
+                    { text: "Oui, c'est plus écologiques.", isCorrect: false, feedback: "Faux ! L'emballage individuel pollue plus. Attention à l'accord (écologique sans 's')." },
+                    { text: "Je préfère acheter en vrac pour éviter les emballages.", isCorrect: true, feedback: "Très bien ! 'En vrac' significa a granel. ¡Menos plástico, mejor planeta!" },
+                    { text: "Je préfère acheter en vrac pour éviter les emballer.", isCorrect: false, feedback: "Erreur de grammaire : 'emballer' est un verbe. Ici on a besoin du nom 'emballages'." }
+                ]
+            }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        const optionsContainer = document.getElementById('options-container');
+        const vendorText = document.getElementById('vendor-text');
+        const feedbackContainer = document.getElementById('feedback-container');
+        const feedbackBox = document.getElementById('feedback-box');
+        const scoreElement = document.getElementById('score');
+
+        function renderQuestion() {
+            feedbackContainer.classList.add('hidden');
+            optionsContainer.innerHTML = '';
+            optionsContainer.classList.remove('hidden');
+            
+            vendorText.textContent = questions[currentQuestion].vendor;
+            
+            questions[currentQuestion].options.forEach((option, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-option w-full text-left bg-white border-2 border-slate-200 text-slate-700 font-bold p-4 rounded-xl hover:bg-slate-50';
+                btn.textContent = option.text;
+                btn.onclick = () => checkAnswer(index, btn);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(index, btnSelected) {
+            const isCorrect = questions[currentQuestion].options[index].isCorrect;
+            const feedback = questions[currentQuestion].options[index].feedback;
+            
+            // Desactivar botones
+            const allBtns = optionsContainer.querySelectorAll('button');
+            allBtns.forEach(b => b.disabled = true);
+            
+            if (isCorrect) {
+                btnSelected.classList.add('correct-btn');
+                btnSelected.classList.remove('border-slate-200', 'text-slate-700');
+                score += 10;
+                scoreElement.textContent = score;
+                feedbackBox.className = 'p-4 rounded-xl mb-4 font-bold text-center text-lg bg-green-100 text-green-800 border-2 border-green-300';
+            } else {
+                btnSelected.classList.add('wrong-btn');
+                btnSelected.classList.remove('border-slate-200', 'text-slate-700');
+                feedbackBox.className = 'p-4 rounded-xl mb-4 font-bold text-center text-lg bg-red-100 text-red-800 border-2 border-red-300';
+                
+                // Mostrar cuál era la correcta
+                const correctIndex = questions[currentQuestion].options.findIndex(o => o.isCorrect);
+                allBtns[correctIndex].classList.add('border-green-500', 'text-green-700', 'bg-green-50');
+            }
+            
+            feedbackBox.textContent = feedback;
+            feedbackContainer.classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            if (currentQuestion < questions.length) {
+                renderQuestion();
+            } else {
+                document.getElementById('vendor-text').parentElement.parentElement.classList.add('hidden');
+                optionsContainer.classList.add('hidden');
+                feedbackContainer.classList.add('hidden');
+                document.getElementById('end-screen').classList.remove('hidden');
+            }
+        }
+
+        // Iniciar
+        renderQuestion();
+    </script>
+</body>
+</html>
